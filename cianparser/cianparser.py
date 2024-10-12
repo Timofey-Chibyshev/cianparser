@@ -1,6 +1,6 @@
 import cloudscraper
 import time
-
+import random
 from cianparser.constants import CITIES, METRO_STATIONS, DEAL_TYPES, OBJECT_SUBURBAN_TYPES
 from cianparser.url_builder import URLBuilder
 from cianparser.proxy_pool import ProxyPool
@@ -65,30 +65,89 @@ class CianParser:
 
         page_number = self.__parser__.start_page - 1
         end_all_parsing = False
+        page_not_parsed = 0
         while page_number < self.__parser__.end_page and not end_all_parsing:
+            time.sleep(random.uniform(1, 10))
+            if page_not_parsed > 3:
+                break
+            print(self.__parser__.end_page)
             page_parsed = False
             page_number += 1
             attempt_number_exception = 0
 
             while attempt_number_exception < 3 and not page_parsed:
                 try:
+                    # Загружаем страницу
+                    html = self.__load_list_page__(
+                        url_list_format=url_list_format,
+                        page_number=page_number,
+                        attempt_number_exception=attempt_number_exception
+                    )
+
+                    # Парсим страницу
                     (page_parsed, attempt_number, end_all_parsing) = self.__parser__.parse_list_offers_page(
-                        html=self.__load_list_page__(url_list_format=url_list_format, page_number=page_number, attempt_number_exception=attempt_number_exception),
+                        html=html,
                         page_number=page_number,
                         count_of_pages=self.__parser__.end_page + 1 - self.__parser__.start_page,
-                        attempt_number=attempt_number_exception)
+                        attempt_number=attempt_number_exception
+                    )
+
+                    print(f"Collecting information on the page number {page_number}")
+                    print(f"page parsed: {page_parsed}")
+
+                    # Здесь добавляем вывод содержимого страницы
+                    # print(
+                    #     f"Page {page_number} content: {html[:500]}...")  # Выводим первые 500 символов HTML для примера
+                    # Либо можно выводить собранные данные:
+                    # print(f"Parsed data from page {page_number}: {self.__parser__.result}")
+
+                    if page_parsed:
+                        page_not_parsed = 0
 
                 except Exception as e:
                     attempt_number_exception += 1
                     if attempt_number_exception < 3:
                         continue
                     print(f"\n\nException: {e}")
-                    print(f"The collection of information from the pages with ending parse on {page_number} page...\n")
+                    print(f"The collection of information from the pages ended on page {page_number}...\n")
+                    page_not_parsed += 1
                     break
 
         print(f"\n\nThe collection of information from the pages with list of offers is completed")
         print(f"Total number of parsed offers: {self.__parser__.count_parsed_offers}. ", end="\n")
 
+    def get_request_url(self, deal_type: str, accommodation_type: str, rooms=None, rent_period_type=None,
+                        suburban_type=None, additional_settings=None):
+        """
+        Returns the request URL based on provided parameters.
+
+        Examples:
+            >>> moscow_parser = cianparser.CianParser(location="Москва")
+            >>> url = moscow_parser.get_request_url(deal_type="sale", accommodation_type="flat", rooms=1)
+            >>> print(url)
+        :param deal_type: type of deal, e.g. "rent_long", "sale"
+        :param accommodation_type: type of accommodation, e.g. "flat", "suburban", "newobject"
+        :param rooms: how many rooms in accommodation, default None
+        :param rent_period_type: type of rent period, default None
+        :param suburban_type: type of suburban building, default None
+        :param additional_settings: additional settings such as min_price, sort_by and others, default None
+        :return: generated URL as a string
+        """
+        deal_type, rent_period_type = __define_deal_type__(deal_type)
+
+        # Создаем URL с помощью вспомогательной функции
+        url = __build_url_list__(
+            location_id=self.__location_id__,
+            deal_type=deal_type,
+            accommodation_type=accommodation_type,
+            rooms=rooms,
+            rent_period_type=rent_period_type,
+            suburban_type=suburban_type,
+            additional_settings=additional_settings
+        )
+
+        return url
+    
     def get_flats(self, deal_type: str, rooms, with_saving_csv=False, with_extra_data=False, additional_settings=None):
         """
         Parse information of flats from cian website
