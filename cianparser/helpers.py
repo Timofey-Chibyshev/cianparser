@@ -1,6 +1,9 @@
 import re
 import itertools
 from cianparser.constants import STREET_TYPES, NOT_STREET_ADDRESS_ELEMENTS, FLOATS_NUMBERS_REG_EXPRESSION
+import random
+import requests
+from bs4 import BeautifulSoup
 
 
 def union_dicts(*dicts):
@@ -88,23 +91,22 @@ def define_author(block):
 
 
 def parse_location_data(block):
-    general_info_sections = block.select_one("div[data-name='LinkArea']").select("div[data-name='GeneralInfoSectionRowComponent']")
+    general_info_sections = block.select_one("div[data-name='LinkArea']").select(
+        "div[data-name='GeneralInfoSectionRowComponent']")
 
     location_data = dict()
     location_data["district"] = ""
-    location_data["underground"] = ""
     location_data["street"] = ""
     location_data["house_number"] = ""
+    location_data["metros"] = []  # Список станций метро
 
     for section in general_info_sections:
         geo_labels = section.select("a[data-name='GeoLabel']")
-
-        # if len(geo_labels) > 1:
-            # print("\n\n", location_data["street"] == "",geo_labels[-2].text, "|||", geo_labels[-1].text)
+        metro_info = dict()  # Для хранения информации по каждой станции метро
 
         for index, label in enumerate(geo_labels):
             if "м. " in label.text:
-                location_data["underground"] = label.text
+                metro_info["underground"] = label.text.strip()
 
             if "р-н" in label.text or "поселение" in label.text:
                 location_data["district"] = label.text
@@ -115,6 +117,32 @@ def parse_location_data(block):
                 if len(geo_labels) > index + 1 and any(chr.isdigit() for chr in geo_labels[index + 1].text):
                     location_data["house_number"] = geo_labels[index + 1].text
 
+        # Парсим время до каждой станции метро на основе иконок
+        svg_icons = section.select("svg")
+        for svg in svg_icons:
+            # Если иконка машинки
+            if "d='m14 7-.84-4.196A1 1 0 0 0 12.18 2H3.82a1 1 0 0 0-.98.804L2 7 1 8v4a1 1 0 0 0 1 1v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1v-1h6v1a1 1 0 0 0 1 1h1a1 1 0 0 0 1-1V8l-1-1Z'" in \
+                    svg['d']:
+                # Извлекаем текстовое значение времени до метро на машине
+                time_to_metro_by_car = section.text.strip().split()[0]
+                metro_info["time_to_metro_by_car"] = time_to_metro_by_car
+
+            # Если иконка пешехода
+            elif "d='M8.67 4.471c.966 0 1.75-.778 1.75-1.738S9.636.993 8.67.993c-.967 0-1.75.78-1.75 1.74A1.74 1.74 0 0 0 8.142 4.39L3.743 5.68 2.605 8.65l1.868.715.783-2.045 1.12-.328L3.449 15h2.13l.094-.259-.017-.006 2.557-6.937.258-.707L9.662 8H13V6h-2.662L8.275 4.427c.127.03.26.044.395.044Z'" in \
+                    svg['d']:
+                # Извлекаем текстовое значение времени до метро пешком
+                time_to_metro_on_foot = section.text.strip().split()[0]
+                metro_info["time_to_metro_on_foot"] = time_to_metro_on_foot
+
+        # Если найдена информация о станции метро
+        if metro_info.get("underground"):
+            # Добавляем время пешком или на машине только если оно указано
+            metro_info["time_to_metro_by_car"] = metro_info.get("time_to_metro_by_car", None)
+            metro_info["time_to_metro_on_foot"] = metro_info.get("time_to_metro_on_foot", None)
+            # Добавляем информацию о станции в список
+            location_data["metros"].append(metro_info)
+
+    print("LOCATION DATA:", location_data)
     return location_data
 
 
@@ -261,7 +289,7 @@ def define_location_data(block, is_sale):
                         location_data["district"] = address_elements[-3].strip()
 
                         return location_data
-
+    print("location_data:", location_data)
     return location_data
 
 
@@ -330,3 +358,52 @@ def define_specification_data(block):
     specification_data["rooms_count"] = define_rooms_count(common_properties)
 
     return specification_data
+
+
+def super_func_by_timosha(offer_url):
+    headers = {
+        'User-Agent': get_random_user_agent(),
+        'Referer': 'https://google.com'
+    }
+
+    try:
+        response = requests.get(offer_url, headers=headers)
+        response.raise_for_status()
+    except requests.RequestException as e:
+        print(f"Ошибка при отправке запроса: {e}")
+        return None
+
+    soup = BeautifulSoup(response.content, 'html.parser')
+
+    # with open("parsed_page.html", "w", encoding="utf-8") as file:
+    #     file.write(soup.prettify())
+
+    station_list = soup.find('ul', class_='a10a3f92e9--undergrounds--sGE99')
+    stations = station_list.find_all('li', class_='a10a3f92e9--underground--pjGNr')
+
+    result = {}
+
+    for station in stations:
+        station_name = station.find('a', class_='a10a3f92e9--underground_link--VnUVj').text.strip()
+
+        time_to_station = station.find('span', class_='a10a3f92e9--underground_time--YvrcI').text.strip()
+
+        icon_svg = station.find('svg', class_='a10a3f92e9--container--xt4AF a10a3f92e9--display_inline-block--wFJ1O a10a3f92e9--color_gray_icons_100--iUfv9')
+        if icon_svg:
+            path_data = icon_svg.find('path')['d']
+
+            if "m14 7" in path_data:  # путь иконки машины
+                travel_mode = 'на машине'
+            elif "M8.67 4.471" in path_data:  # путь иконки пешехода
+                travel_mode = 'пешком'
+            else:
+                travel_mode = 'неизвестный способ'
+        else:
+            travel_mode = 'неизвестный способ'
+
+        result[station_name] = {
+            'Время': time_to_station,
+            'Способ передвижения': travel_mode
+        }
+
+    return result

@@ -5,10 +5,9 @@ from datetime import datetime
 from transliterate import translit
 
 from cianparser.constants import FILE_NAME_FLAT_FORMAT
-from cianparser.helpers import union_dicts, define_author, define_location_data, define_specification_data, define_deal_url_id, define_price_data
+from cianparser.helpers import union_dicts, define_author, define_location_data, define_specification_data, define_deal_url_id, define_price_data, super_func_by_timosha
 from cianparser.flat.page import FlatPageParser
 from cianparser.base_list import BaseListPageParser
-
 
 import random
 import requests
@@ -16,6 +15,26 @@ from datetime import datetime
 
 # Список User-Agent для ротации
 USER_AGENTS = [
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0.3 Safari/605.1.15',
+    'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:90.0) Gecko/20100101 Firefox/90.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_14_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.63 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/92.0.4515.159 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/90.0.4430.93 Safari/537.36',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_13_6) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/12.1.2 Safari/605.1.15',
+    'Mozilla/5.0 (Windows NT 6.3; WOW64; Trident/7.0; AS; rv:11.0) like Gecko',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_12_6) AppleWebKit/603.3.8 (KHTML, like Gecko) Version/10.1.2 Safari/603.3.8',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/88.0.4324.150 Safari/537.36',
+    'Mozilla/5.0 (X11; Linux x86_64; rv:88.0) Gecko/20100101 Firefox/88.0',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.0 Mobile/15A372 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 10; SM-G973F) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.106 Mobile Safari/537.36',
+    'Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; AS; rv:11.0) like Gecko',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:85.0) Gecko/20100101 Firefox/85.0',
+    'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.11; rv:42.0) Gecko/20100101 Firefox/42.0',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/75.0.3770.100 Safari/537.36',
     'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
     'Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:91.0) Gecko/20100101 Firefox/91.0',
@@ -56,7 +75,7 @@ class FlatListPageParser(BaseListPageParser):
 
     def parse_list_offers_page(self, html, page_number: int, count_of_pages: int, attempt_number: int):
         list_soup = bs4.BeautifulSoup(html, 'html.parser')
-
+        # print('List_soup:', list_soup)
         # Проверка на наличие Captcha
         if list_soup.text.find("Captcha") > 0:
             print(f"\r{page_number} page: there is CAPTCHA... failed to parse page...")
@@ -74,6 +93,7 @@ class FlatListPageParser(BaseListPageParser):
             print(f"Collecting information from pages with list of offers", end="\n")
 
         for ind, offer in enumerate(offers):
+            # print("OFFER:",offer)
             self.parse_offer(offer=offer)
             self.print_parse_progress(page_number=page_number, count_of_pages=count_of_pages, offers=offers, ind=ind)
 
@@ -81,6 +101,8 @@ class FlatListPageParser(BaseListPageParser):
         return True, 0, False
 
     def parse_offer(self, offer):
+        # print('Parse offer func...')
+        # print('Offer:', offer)
         common_data = dict()
         common_data["url"] = offer.select("div[data-name='LinkArea']")[0].select("a")[0].get('href')
         common_data["location"] = self.location_name
@@ -109,26 +131,24 @@ class FlatListPageParser(BaseListPageParser):
         if self.with_saving_csv:
             self.save_results()
 
-    # Добавим метод для выполнения запросов с ротацией User-Agent
     def make_request_with_user_agent_rotation(self, url, max_attempts=5):
         attempts = 0
         while attempts < max_attempts:
             try:
-                # Выбор случайного User-Agent для текущего запроса
                 headers = {
                     'User-Agent': get_random_user_agent(),
                     'Referer': 'https://google.com'
                 }
                 response = self.session.get(url, headers=headers)
 
-                # Проверка на код ошибки 429 (Too Many Requests)
+
                 if response.status_code == 429:
                     print(f"429 Too Many Requests on attempt {attempts+1}, waiting...")
                     time.sleep(2 ** attempts)  # Экспоненциальная пауза перед повтором
                     attempts += 1
                 else:
                     response.raise_for_status()  # Ошибки 4XX/5XX поднимаются исключением
-                    return response  # Успешный запрос, возвращаем результат
+                    return response
             except requests.exceptions.RequestException as e:
                 print(f"Request error: {e}, retrying...")
                 time.sleep(2 ** attempts)
