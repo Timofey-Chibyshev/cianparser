@@ -89,7 +89,7 @@ class URLBuilder:
         if "metro" in additional_settings.keys():
             if "metro_station" in additional_settings.keys():
                 if additional_settings["metro"] in METRO_STATIONS.keys():
-                    for metro_station, metro_id in METRO_STATIONS[additional_settings["metro"]]:
+                    for metro_station, metro_id, metro_line in METRO_STATIONS[additional_settings["metro"]]:
                         if additional_settings["metro_station"] == metro_station:
                             self.url += METRO_ID_PATH.format(metro_id)
 

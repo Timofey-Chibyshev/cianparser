@@ -119,7 +119,7 @@ class FlatListPageParser(BaseListPageParser):
 
         page_data = dict()
         if self.with_extra_data:
-            flat_parser = FlatPageParser(session=self.session, url=common_data["url"])
+            flat_parser = FlatPageParser(session=self.session, url=common_data["url"], deal_type=common_data["deal_type"])
             page_data = flat_parser.parse_page()
             time.sleep(4)
 
