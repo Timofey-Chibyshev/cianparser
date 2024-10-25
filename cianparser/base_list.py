@@ -87,7 +87,7 @@ class BaseListPageParser:
 
     def __fill_missing_keys(self):
         all_keys = {key for d in self.result for key in d.keys()}
-        return [{key: d.get(key, None) for key in all_keys} for d in self.result]
+        self.result = [{key: d.get(key, None) for key in all_keys} for d in self.result]
 
     def save_results(self):
         self.remove_unnecessary_fields()
