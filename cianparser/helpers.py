@@ -142,7 +142,7 @@ def parse_location_data(block):
             # Добавляем информацию о станции в список
             location_data["metros"].append(metro_info)
 
-    print("LOCATION DATA:", location_data)
+    # print("LOCATION DATA:", location_data)
     return location_data
 
 
@@ -289,7 +289,7 @@ def define_location_data(block, is_sale):
                         location_data["district"] = address_elements[-3].strip()
 
                         return location_data
-    print("location_data:", location_data)
+    # print("location_data:", location_data)
     return location_data
 
 
