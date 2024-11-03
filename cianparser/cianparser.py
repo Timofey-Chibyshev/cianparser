@@ -109,6 +109,7 @@ class CianParser:
                     if attempt_number_exception < 3:
                         continue
                     print(f"\n\nException: {e}")
+                    print(f"Принтую ссылочку для Святика:{url_list_format}")
                     print(f"The collection of information from the pages ended on page {page_number}...\n")
                     page_not_parsed += 1
                     break
