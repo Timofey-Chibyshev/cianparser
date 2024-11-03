@@ -74,9 +74,15 @@ class FlatListPageParser(BaseListPageParser):
         return pathlib.Path(pathlib.Path.cwd(), file_name.replace("'", ""))
 
     def parse_list_offers_page(self, html, page_number: int, count_of_pages: int, attempt_number: int):
+        # Убедитесь, что случайный User-Agent установлен для других запросов, если они есть.
+        headers = {
+            'User-Agent': random.choice(USER_AGENTS)
+        }
+
+        # Преобразуем HTML в объект BeautifulSoup
         list_soup = bs4.BeautifulSoup(html, 'html.parser')
-        # print('List_soup:', list_soup)
-        # Проверка на наличие Captcha
+
+        # Проверка на Captcha
         if list_soup.text.find("Captcha") > 0:
             print(f"\r{page_number} page: there is CAPTCHA... failed to parse page...")
             return False, attempt_number + 1, True
@@ -90,10 +96,9 @@ class FlatListPageParser(BaseListPageParser):
         print(f"\r {page_number} page: {len(offers)} offers", end="\r", flush=True)
 
         if page_number == self.start_page and attempt_number == 0:
-            print(f"Collecting information from pages with list of offers", end="\n")
+            print("Collecting information from pages with list of offers")
 
         for ind, offer in enumerate(offers):
-            # print("OFFER:",offer)
             self.parse_offer(offer=offer)
             self.print_parse_progress(page_number=page_number, count_of_pages=count_of_pages, offers=offers, ind=ind)
 
