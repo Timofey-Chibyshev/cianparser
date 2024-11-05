@@ -360,50 +360,50 @@ def define_specification_data(block):
     return specification_data
 
 
-def super_func_by_timosha(offer_url):
-    headers = {
-        'User-Agent': get_random_user_agent(),
-        'Referer': 'https://google.com'
-    }
-
-    try:
-        response = requests.get(offer_url, headers=headers)
-        response.raise_for_status()
-    except requests.RequestException as e:
-        print(f"Ошибка при отправке запроса: {e}")
-        return None
-
-    soup = BeautifulSoup(response.content, 'html.parser')
-
-    # with open("parsed_page.html", "w", encoding="utf-8") as file:
-    #     file.write(soup.prettify())
-
-    station_list = soup.find('ul', class_='a10a3f92e9--undergrounds--sGE99')
-    stations = station_list.find_all('li', class_='a10a3f92e9--underground--pjGNr')
-
-    result = {}
-
-    for station in stations:
-        station_name = station.find('a', class_='a10a3f92e9--underground_link--VnUVj').text.strip()
-
-        time_to_station = station.find('span', class_='a10a3f92e9--underground_time--YvrcI').text.strip()
-
-        icon_svg = station.find('svg', class_='a10a3f92e9--container--xt4AF a10a3f92e9--display_inline-block--wFJ1O a10a3f92e9--color_gray_icons_100--iUfv9')
-        if icon_svg:
-            path_data = icon_svg.find('path')['d']
-
-            if "m14 7" in path_data:  # путь иконки машины
-                travel_mode = 'на машине'
-            elif "M8.67 4.471" in path_data:  # путь иконки пешехода
-                travel_mode = 'пешком'
-            else:
-                travel_mode = 'неизвестный способ'
-        else:
-            travel_mode = 'неизвестный способ'
-
-        result[station_name] = {
-            'Время': time_to_station,
-            'Способ передвижения': travel_mode
-        }
-
-    return result
+# def super_func_by_timosha(offer_url):
+#     headers = {
+#         'User-Agent': get_random_user_agent(),
+#         'Referer': 'https://google.com'
+#     }
+#
+#     try:
+#         response = requests.get(offer_url, headers=headers)
+#         response.raise_for_status()
+#     except requests.RequestException as e:
+#         print(f"Ошибка при отправке запроса: {e}")
+#         return None
+#
+#     soup = BeautifulSoup(response.content, 'html.parser')
+#
+#     # with open("parsed_page.html", "w", encoding="utf-8") as file:
+#     #     file.write(soup.prettify())
+#
+#     station_list = soup.find('ul', class_='a10a3f92e9--undergrounds--sGE99')
+#     stations = station_list.find_all('li', class_='a10a3f92e9--underground--pjGNr')
+#
+#     result = {}
+#
+#     for station in stations:
+#         station_name = station.find('a', class_='a10a3f92e9--underground_link--VnUVj').text.strip()
+#
+#         time_to_station = station.find('span', class_='a10a3f92e9--underground_time--YvrcI').text.strip()
+#
+#         icon_svg = station.find('svg', class_='a10a3f92e9--container--xt4AF a10a3f92e9--display_inline-block--wFJ1O a10a3f92e9--color_gray_icons_100--iUfv9')
+#         if icon_svg:
+#             path_data = icon_svg.find('path')['d']
+#
+#             if "m14 7" in path_data:  # путь иконки машины
+#                 travel_mode = 'на машине'
+#             elif "M8.67 4.471" in path_data:  # путь иконки пешехода
+#                 travel_mode = 'пешком'
+#             else:
+#                 travel_mode = 'неизвестный способ'
+#         else:
+#             travel_mode = 'неизвестный способ'
+#
+#         result[station_name] = {
+#             'Время': time_to_station,
+#             'Способ передвижения': travel_mode
+#         }
+#
+#     return result

@@ -2,10 +2,13 @@ import time
 import re
 import bs4
 import requests
+import datetime
+import random
+
 from random_user_agent.user_agent import UserAgent
 from random_user_agent.params import SoftwareName, OperatingSystem
 from transliterate import translit
-import datetime
+
 
 class FlatPageParser:
     def __init__(self, session, url, deal_type):
@@ -14,7 +17,8 @@ class FlatPageParser:
         self.deal_type = deal_type
         software_names = [SoftwareName.CHROME.value, SoftwareName.FIREFOX.value]
         operating_systems = [OperatingSystem.WINDOWS.value, OperatingSystem.LINUX.value]
-        self.user_agent_rotator = UserAgent(software_names=software_names, operating_systems=operating_systems, limit=100)
+        self.user_agent_rotator = UserAgent(software_names=software_names, operating_systems=operating_systems,
+                                            limit=100)
 
     def __get_random_user_agent(self):
         return self.user_agent_rotator.get_random_user_agent()
@@ -23,24 +27,37 @@ class FlatPageParser:
         headers = {
             'User-Agent': self.__get_random_user_agent(),
             'Referer': 'https://google.com',
+            'Accept-Language': 'en-US,en;q=0.9',
+            'Connection': 'keep-alive',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Encoding': 'gzip, deflate, br'
         }
 
-        retries = 3
-        for _ in range(retries):
+        retries = 5
+        delay = 2
+
+        for attempt in range(retries):
             try:
+                headers['User-Agent'] = self.__get_random_user_agent()
+                print(headers['User-Agent'])
+
                 res = self.session.get(self.url, headers=headers)
+
                 if res.status_code == 429:
-                    time.sleep(10)
+                    wait_time = delay * (2 ** attempt) + random.uniform(1, 5)
+                    print('Current User-Agent: ', headers['User-Agent'])
+                    print(f"429 Too Many Requests. Waiting {wait_time} seconds before retrying...")
+                    time.sleep(wait_time)
                 else:
                     res.raise_for_status()
                     self.offer_page_html = res.text
                     self.offer_page_soup = bs4.BeautifulSoup(self.offer_page_html, 'html.parser')
-                    break
+                    return
             except requests.exceptions.RequestException as e:
-                print(f"Error during request: {e}")
-                time.sleep(2)
-        else:
-            raise Exception("Failed to load page after multiple attempts")
+                print(f"Request failed (Attempt {attempt + 1}/{retries}): {e}")
+                time.sleep(delay + random.uniform(1, 3))
+
+        raise Exception("Failed to load page after multiple attempts")
 
     def __parse_metro_times(self):
         """Парсит станции метро, время до них и способ передвижения."""
