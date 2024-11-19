@@ -253,6 +253,7 @@ class FlatPageParser:
         return self.user_agent_rotator.get_random_user_agent()
 
     def __load_page(self):
+        # self.__load_page_with_selenium()
         headers = {
             'User-Agent': self.__get_random_user_agent(),
             'Referer': 'https://google.com',
@@ -262,7 +263,7 @@ class FlatPageParser:
             'Accept-Encoding': 'gzip, deflate, br'
         }
 
-        retries = 3  # Number of retries before switching to Selenium
+        retries = 1  # Number of retries before switching to Selenium
         delay = 2
 
         # Attempt to load the page using requests
@@ -294,14 +295,15 @@ class FlatPageParser:
         print("Switching to Selenium to load the page...")
         options = Options()
         options.add_argument("--headless")
+        options.add_argument("--blink-settings=imagesEnabled=false")
+        options.page_load_strategy = 'eager'
         options.add_argument(f"user-agent={self.__get_random_user_agent()}")
         driver = webdriver.Chrome(options=options)
 
         try:
             driver.get(self.url)
 
-            # Optionally wait for specific elements to ensure page has fully loaded
-            WebDriverWait(driver, 10).until(
+            WebDriverWait(driver, 3).until(
                 EC.presence_of_element_located((By.TAG_NAME, "body"))
             )
 
@@ -316,8 +318,9 @@ class FlatPageParser:
     def __parse_metro_times(self):
         """Парсит станции метро, время до них и способ передвижения."""
         station_list = self.offer_page_soup.find('ul', class_='a10a3f92e9--undergrounds--sGE99')
+        print('тип странички ', type(self.offer_page_soup), 'тип листа со станциями метро ', type(station_list))
         stations = station_list.find_all('li', class_='a10a3f92e9--underground--pjGNr')
-
+        print('станции тип ', type(stations))
         result = []
         for station in stations:
             station_name = station.find('a', class_='a10a3f92e9--underground_link--VnUVj').text.strip()
@@ -436,8 +439,9 @@ class FlatPageParser:
         flat_info_label = flat_info_label.find_next("div")
 
         info_dict = {}
-
+        print('flat_info тип ', type(flat_info_label))
         info_blocks = flat_info_label.find_all("div", recursive=False)
+        print('info_blocks тип ', type(info_blocks))
         for block in info_blocks:
             label = block.find("p")
 
@@ -450,7 +454,9 @@ class FlatPageParser:
                     info_dict[label_text] = value_text
 
         home_info_label = flat_info_label.find_next("div", class_="a10a3f92e9--header--RGZa5").find_next("div")
+        print('home_info тип ', type(home_info_label))
         home_info_block = home_info_label.find_all("div")
+        print('home_info_blocks тип ', type(home_info_block))
         for block in home_info_block:
             label = block.find("p")
 

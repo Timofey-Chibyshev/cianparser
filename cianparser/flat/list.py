@@ -29,6 +29,8 @@ def init_selenium():
     options.add_argument("disable-infobars")
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-dev-shm-usage")  # Используется для Linux
+    options.add_argument("--blink-settings=imagesEnabled=false")
+    options.page_load_strategy = 'eager'
     driver = webdriver.Chrome(options=options)
     return driver
 
@@ -53,7 +55,7 @@ class FlatListPageParser(BaseListPageParser):
 
                 # Проверка на статус-код 429
                 if response.status_code == 429:
-                    wait_time = (2 ** attempts) + random.uniform(3, 6)  # Экспоненциальная задержка с рандомизацией
+                    wait_time = (2 ** attempts) + random.uniform(3, 6)
                     print(f"429 Too Many Requests on attempt {attempts + 1}, waiting {wait_time:.2f} seconds...")
                     time.sleep(wait_time)
                     attempts += 1
@@ -78,10 +80,8 @@ class FlatListPageParser(BaseListPageParser):
         return page_source
 
     def parse_list_offers_page(self, html, page_number: int, count_of_pages: int, attempt_number: int):
-        # Преобразуем HTML в объект BeautifulSoup
         list_soup = bs4.BeautifulSoup(html, 'html.parser')
 
-        # Проверка на Captcha
         if list_soup.text.find("Captcha") > 0:
             print(f"\r{page_number} page: CAPTCHA detected... failed to parse page...")
             return False, attempt_number + 1, True
@@ -102,10 +102,10 @@ class FlatListPageParser(BaseListPageParser):
             self.print_parse_progress(page_number=page_number, count_of_pages=count_of_pages, offers=offers, ind=ind)
 
             # Пауза между запросами для каждого объявления
-            time.sleep(random.uniform(3, 6))  # Случайная задержка между объявлениями
+            # time.sleep(random.uniform(3, 6))  # Случайная задержка между объявлениями
 
         # Дополнительная задержка между страницами
-        time.sleep(random.uniform(5, 10))
+        # time.sleep(random.uniform(5, 10))
         return True, 0, False
 
     def build_file_path(self):
@@ -121,6 +121,7 @@ class FlatListPageParser(BaseListPageParser):
         # print('Offer:', offer)
         common_data = dict()
         common_data["url"] = offer.select("div[data-name='LinkArea']")[0].select("a")[0].get('href')
+        print('url текущего оффера: ', common_data['url'])
         common_data["location"] = self.location_name
         common_data["deal_type"] = self.deal_type
         common_data["accommodation_type"] = self.accommodation_type

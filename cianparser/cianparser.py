@@ -52,24 +52,23 @@ class CianParser:
 
         res = self.__session__.get(url=url_list)
         if res.status_code == 429:
-            time.sleep(10)
+            time.sleep(1)
         res.raise_for_status()
 
         return res.text
 
     def __run__(self, url_list_format: str):
-        print(f"\n{' ' * 30}Preparing to collect information from pages..")
+        print(f"\n{' ' * 30}Подготовка к сбору информации с страниц...")
 
         if self.__parser__.with_saving_csv:
-            print(f"The absolute path to the file: \n{self.__parser__.file_path} \n")
+            print(f"Абсолютный путь к файлу: \n{self.__parser__.file_path} \n")
 
         page_number = self.__parser__.start_page - 1
         end_all_parsing = False
         page_not_parsed = 0
         while page_number < self.__parser__.end_page and not end_all_parsing:
-            time.sleep(random.uniform(1, 10))
-            if page_not_parsed > 3:
-                break
+            # time.sleep(random.uniform(1, 10))
+
             print(self.__parser__.end_page)
             page_parsed = False
             page_number += 1
@@ -77,14 +76,14 @@ class CianParser:
 
             while attempt_number_exception < 3 and not page_parsed:
                 try:
-                    # Загружаем страницу
+                    # Загрузка страницы
                     html = self.__load_list_page__(
                         url_list_format=url_list_format,
                         page_number=page_number,
                         attempt_number_exception=attempt_number_exception
                     )
 
-                    # Парсим страницу
+                    # Парсинг страницы
                     (page_parsed, attempt_number, end_all_parsing) = self.__parser__.parse_list_offers_page(
                         html=html,
                         page_number=page_number,
@@ -92,30 +91,30 @@ class CianParser:
                         attempt_number=attempt_number_exception
                     )
 
-                    print(f"Collecting information on the page number {page_number}")
-                    print(f"page parsed: {page_parsed}")
-
-                    # Здесь добавляем вывод содержимого страницы
-                    # print(
-                    #     f"Page {page_number} content: {html[:500]}...")  # Выводим первые 500 символов HTML для примера
-                    # Либо можно выводить собранные данные:
-                    # print(f"Parsed data from page {page_number}: {self.__parser__.result}")
+                    print(f"Сбор информации со страницы номер {page_number}")
+                    print(f"Страница обработана: {page_parsed}")
 
                     if page_parsed:
-                        page_not_parsed = 0
+                        page_not_parsed = 0  # Сбрасываем счётчик пропущенных страниц при успешном парсинге
 
                 except Exception as e:
                     attempt_number_exception += 1
+                    print(f"\nОшибка на странице {page_number}, попытка {attempt_number_exception}: {e}")
                     if attempt_number_exception < 3:
+                        # Повторяем до 3 попыток для текущей страницы
                         continue
-                    print(f"\n\nException: {e}")
-                    print(f"Принтую ссылочку для Святика:{url_list_format}")
-                    print(f"The collection of information from the pages ended on page {page_number}...\n")
-                    page_not_parsed += 1
-                    break
+                    else:
+                        print(f"Пропуск страницы {page_number} из-за повторяющихся ошибок.")
+                        page_not_parsed += 1  # Увеличиваем счётчик пропущенных страниц
+                        break  # Выходим из внутреннего цикла и продолжаем со следующей страницы
 
-        print(f"\n\nThe collection of information from the pages with list of offers is completed")
-        print(f"Total number of parsed offers: {self.__parser__.count_parsed_offers}. ", end="\n")
+            # Если более 3 подряд не обработанных страниц, останавливаем парсинг
+            if page_not_parsed > 3:
+                print(f"Слишком много подряд неудачных страниц. Досрочное завершение парсинга.")
+                break
+
+        print("\n\nСбор информации с страниц завершён")
+        print(f"Общее количество обработанных объявлений: {self.__parser__.count_parsed_offers}. ", end="\n")
 
     def get_request_url(self, deal_type: str, accommodation_type: str, rooms=None, rent_period_type=None,
                         suburban_type=None, additional_settings=None):
